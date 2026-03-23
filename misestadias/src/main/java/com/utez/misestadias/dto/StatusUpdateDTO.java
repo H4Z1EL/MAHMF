@@ -5,12 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para actualizar SOLO el estado de una actividad.
- * PUT /api/activities/{id}/status
- *
- * Se guarda en: src/main/java/com/utez/misestadias/dto/StatusUpdateDTO.java
- */
+
 @Data
 @NoArgsConstructor
 public class StatusUpdateDTO {

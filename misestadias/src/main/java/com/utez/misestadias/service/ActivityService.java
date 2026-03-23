@@ -114,12 +114,6 @@ public class ActivityService {
         return toResponseDTO(activity);
     }
 
-    // LÓGICA DE TRANSICIONES DE ESTADO
-    // Reglas de negocio: qué cambios de estado son válidos
-    // PENDING   → DELIVERED (alumno entrega)
-    // PENDING   → LATE      (sistema o asesor marca como tardía)
-    // DELIVERED → LATE      (asesor rechaza y marca tardía)
-    // LATE      → DELIVERED (alumno re-entrega)
     private void validateStatusTransition(String currentStatus, String newStatus) {
 
         // Si el estado es el mismo, no hay nada que cambiar
@@ -130,13 +124,8 @@ public class ActivityService {
             );
         }
 
-        // Todas las transiciones entre los 3 estados son válidas en este sistema.
-        // Si en el futuro necesitas restringirlas (ej. no regresar de LATE a PENDING),
-        // agrega las validaciones aquí.
     }
 
-    // MÉTODO PRIVADO: Convierte Activity → ActivityResponseDTO
-    // Centraliza la conversión para no repetirla en cada método.
     private ActivityResponseDTO toResponseDTO(Activity activity) {
 
         // Intentar obtener el nombre del alumno desde su perfil
