@@ -9,9 +9,9 @@ import java.util.Optional;
 @Repository
 public interface StudentProfileRepository extends JpaRepository<StudentProfile, Long> {
 
-    // Buscar el perfil a partir del ID de usuario
     Optional<StudentProfile> findByUser_UserId(Long userId);
 
-    // Buscar por matrícula (campo único)
     Optional<StudentProfile> findByMatricula(String matricula);
+
+    boolean existsByUser_UserId(Long userId);
 }

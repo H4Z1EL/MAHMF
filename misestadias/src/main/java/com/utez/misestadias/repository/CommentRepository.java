@@ -1,6 +1,3 @@
-// =============================================
-// CommentRepository.java
-// =============================================
 package com.utez.misestadias.repository;
 
 import com.utez.misestadias.model.Comment;
@@ -12,6 +9,7 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    // Todos los comentarios de una actividad (usa el índice idx_comments_activity)
-    List<Comment> findByActivity_ActivityId(Long activityId);
+    List<Comment> findByActivity_ActivityIdOrderByCreatedAtAsc(Long activityId);
+
+    boolean existsByActivity_ActivityId(Long activityId);
 }

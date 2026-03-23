@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,39 +20,26 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADVISOR', 'ROLE_ADMIN')")
     public ResponseEntity<ActivityResponseDTO> createActivity(
             @Valid @RequestBody ActivityRequestDTO dto) {
-
-        ActivityResponseDTO response = activityService.createActivity(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(activityService.createActivity(dto));
     }
 
     @GetMapping("/student/{studentId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_STUDENT', 'ROLE_ADVISOR', 'ROLE_ADMIN')")
     public ResponseEntity<List<ActivityResponseDTO>> getActivitiesByStudent(
             @PathVariable Long studentId) {
-
-        List<ActivityResponseDTO> activities = activityService.getActivitiesByStudent(studentId);
-        return ResponseEntity.ok(activities);
+        return ResponseEntity.ok(activityService.getActivitiesByStudent(studentId));
     }
 
     @GetMapping("/{activityId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_STUDENT', 'ROLE_ADVISOR', 'ROLE_ADMIN')")
-    public ResponseEntity<ActivityResponseDTO> getActivityById(
-            @PathVariable Long activityId) {
-
-        ActivityResponseDTO activity = activityService.getActivityById(activityId);
-        return ResponseEntity.ok(activity);
+    public ResponseEntity<ActivityResponseDTO> getActivityById(@PathVariable Long activityId) {
+        return ResponseEntity.ok(activityService.getActivityById(activityId));
     }
 
     @PutMapping("/{activityId}/status")
-    @PreAuthorize("hasAnyAuthority('ROLE_STUDENT', 'ROLE_ADVISOR', 'ROLE_ADMIN')")
     public ResponseEntity<ActivityResponseDTO> updateStatus(
             @PathVariable Long activityId,
             @Valid @RequestBody StatusUpdateDTO dto) {
-
-        ActivityResponseDTO updated = activityService.updateStatus(activityId, dto);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(activityService.updateStatus(activityId, dto));
     }
 }

@@ -10,10 +10,6 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-/**
- * Utilidad para generar, validar y leer tokens JWT.
- * Se guarda en: src/main/java/com/utez/misestadias/security/JwtUtils.java
- */
 @Component
 public class JwtUtils {
 
@@ -62,12 +58,6 @@ public class JwtUtils {
         return extractAllClaims(token).get("role", String.class);
     }
 
-    // -------------------------------------------------------------------
-    // VALIDAR TOKEN
-    // Devuelve true si la firma es correcta y el token no ha expirado.
-    // Si algo falla (token alterado, expirado, malformado) lanza excepción
-    // que JwtAuthFilter capturará.
-    // -------------------------------------------------------------------
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token); // Si esto no lanza excepción, el token es válido

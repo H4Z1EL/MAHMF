@@ -11,13 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Puente entre Spring Security y tu tabla "users" en Oracle.
- * Spring Security llamará a loadUserByUsername() automáticamente
- * durante el proceso de autenticación.
- *
- * Se guarda en: src/main/java/com/utez/misestadias/security/UserDetailsServiceImpl.java
- */
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {

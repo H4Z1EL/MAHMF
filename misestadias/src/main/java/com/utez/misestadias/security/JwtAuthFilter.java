@@ -14,13 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Filtro que se ejecuta UNA VEZ por cada request HTTP.
- * Su trabajo: leer el header "Authorization", validar el JWT
- * y cargar al usuario en el contexto de seguridad de Spring.
- *
- * Se guarda en: src/main/java/com/utez/misestadias/security/JwtAuthFilter.java
- */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
