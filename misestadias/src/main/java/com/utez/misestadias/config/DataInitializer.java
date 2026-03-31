@@ -39,5 +39,28 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("Usuario ADMIN ya existe — no se insertó de nuevo.");
         }
+
+        // Alumno de prueba
+        if (!userRepository.existsByEmail("alumno@correo.com")) {
+            User alumno = new User();
+            alumno.setEmail("alumno@correo.com");
+            alumno.setPasswordHash(passwordEncoder.encode("12345"));
+            alumno.setRole("STUDENT");
+            alumno.setIsActive(1);
+            userRepository.save(alumno);
+            log.info("Usuario STUDENT creado: alumno@correo.com / 12345");
+        }
+
+        // Asesor de prueba
+        if (!userRepository.existsByEmail("asesor@correo.com")) {
+            User asesor = new User();
+            asesor.setEmail("asesor@correo.com");
+            asesor.setPasswordHash(passwordEncoder.encode("12345"));
+            asesor.setRole("ADVISOR");
+            asesor.setIsActive(1);
+            userRepository.save(asesor);
+            log.info("Usuario ADVISOR creado: asesor@correo.com / 12345");
+        }
+
     }
 }

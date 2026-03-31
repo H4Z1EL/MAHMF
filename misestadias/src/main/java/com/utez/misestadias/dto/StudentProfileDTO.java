@@ -15,6 +15,7 @@ public class StudentProfileDTO {
     private Long profileId;
     private Long userId;
     private String email;
+    private String role;
 
     // Información Personal
     private String fullName;
