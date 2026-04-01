@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,109 +27,86 @@ public class ActivityService {
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
 
-    // CREAR ACTIVIDAD
-    // El asesor/admin crea la actividad y la asigna a un studentId.
-    @Transactional
-    public ActivityResponseDTO createActivity(ActivityRequestDTO dto) {
+    // Resumen solo para el alumno logueado
+    @Transactional(readOnly = true)
+    public Map<String, Integer> getSummary(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // 1. Verificar que el estudiante existe
-        User student = userRepository.findById(dto.getStudentId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Estudiante no encontrado con ID: " + dto.getStudentId()
-                ));
+        List<Activity> myActivities = activityRepository.findByStudent_UserIdOrderByCreatedAtDesc(user.getUserId());
 
-        // 2. Verificar que el usuario es realmente un STUDENT
-        if (!"STUDENT".equals(student.getRole())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "El usuario con ID " + dto.getStudentId() + " no es un estudiante"
-            );
-        }
+        int total = myActivities.size();
+        int completed = (int) myActivities.stream()
+                .filter(a -> "DELIVERED".equals(a.getStatus()))
+                .count();
 
-        // 3. Construir la entidad Activity
-        Activity activity = new Activity();
-        activity.setStudent(student);
-        activity.setTitle(dto.getTitle());
-        activity.setDescription(dto.getDescription());
-        activity.setDueDate(dto.getDueDate());
-        // El status y createdAt los pone @PrePersist automáticamente
-
-        // 4. Guardar en BD
-        Activity saved = activityRepository.save(activity);
-
-        // 5. Convertir a DTO de respuesta
-        return toResponseDTO(saved);
+        return Map.of("completed", completed, "total", total);
     }
 
-    // LISTAR ACTIVIDADES DE UN ALUMNO
-    // Lo usa el alumno (ver sus propias) y el asesor (ver las de su alumno).
+    // Todas las actividades del alumno logueado
     @Transactional(readOnly = true)
-    public List<ActivityResponseDTO> getActivitiesByStudent(Long studentId) {
+    public List<ActivityResponseDTO> getActivitiesByStudentEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Verificar que el estudiante existe
-        if (!userRepository.existsById(studentId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Estudiante no encontrado con ID: " + studentId
-            );
-        }
-
-        return activityRepository
-                .findByStudent_UserIdOrderByCreatedAtDesc(studentId)
+        return activityRepository.findByStudent_UserIdOrderByCreatedAtDesc(user.getUserId())
                 .stream()
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    // ACTUALIZAR ESTADO DE UNA ACTIVIDAD
-    // Puede hacerlo el asesor (DELIVERED, LATE) o el alumno (DELIVERED).
-    @Transactional
-    public ActivityResponseDTO updateStatus(Long activityId, StatusUpdateDTO dto) {
+    // Actividades filtradas por estado solo para el alumno logueado
+    @Transactional(readOnly = true)
+    public List<ActivityResponseDTO> getActivitiesByStatus(String email, String status) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // 1. Buscar la actividad
-        Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Actividad no encontrada con ID: " + activityId
-                ));
-
-        // 2. Validar transiciones de estado permitidas
-        validateStatusTransition(activity.getStatus(), dto.getStatus());
-
-        // 3. Actualizar estado — @PreUpdate se encarga del updatedAt
-        activity.setStatus(dto.getStatus());
-
-        Activity updated = activityRepository.save(activity);
-        return toResponseDTO(updated);
+        return activityRepository.findByStudent_UserIdAndStatusOrderByCreatedAtDesc(user.getUserId(), status)
+                .stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    // OBTENER UNA ACTIVIDAD POR ID
+    @Transactional
+    public ActivityResponseDTO createActivity(ActivityRequestDTO dto) {
+        User student = userRepository.findById(dto.getStudentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Estudiante no encontrado"));
+
+        Activity activity = new Activity();
+        activity.setStudent(student);
+        activity.setTitle(dto.getTitle());
+        activity.setDescription(dto.getDescription());
+        activity.setDueDate(dto.getDueDate());
+        activity.setStatus("PENDING");
+
+        return toResponseDTO(activityRepository.save(activity));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActivityResponseDTO> getActivitiesByStudent(Long studentId) {
+        return activityRepository.findByStudent_UserIdOrderByCreatedAtDesc(studentId)
+                .stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ActivityResponseDTO updateStatus(Long activityId, StatusUpdateDTO dto) {
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Actividad no encontrada"));
+
+        activity.setStatus(dto.getStatus());
+        return toResponseDTO(activityRepository.save(activity));
+    }
+
     @Transactional(readOnly = true)
     public ActivityResponseDTO getActivityById(Long activityId) {
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Actividad no encontrada con ID: " + activityId
-                ));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Actividad no encontrada"));
         return toResponseDTO(activity);
     }
 
-    private void validateStatusTransition(String currentStatus, String newStatus) {
-
-        // Si el estado es el mismo, no hay nada que cambiar
-        if (currentStatus.equals(newStatus)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "La actividad ya tiene el estado: " + currentStatus
-            );
-        }
-
-    }
-
     private ActivityResponseDTO toResponseDTO(Activity activity) {
-
-        // Intentar obtener el nombre del alumno desde su perfil
         String studentName = studentProfileRepository
                 .findByUser_UserId(activity.getStudent().getUserId())
                 .map(StudentProfile::getFullName)

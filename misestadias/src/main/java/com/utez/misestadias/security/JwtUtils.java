@@ -3,6 +3,7 @@ package com.utez.misestadias.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,69 +14,61 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    // Lee los valores del application.properties
+    // Lee la clave del application.properties
     @Value("${jwt.secret}")
     private String secretString;
 
     @Value("${jwt.expiration}")
     private long expirationMs;
 
-    // -------------------------------------------------------------------
-    // Construye la clave criptográfica a partir del String del properties
-    // -------------------------------------------------------------------
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secretString.getBytes(StandardCharsets.UTF_8));
+    private SecretKey key;
+
+    // --- INICIALIZACIÓN SEGURA ---
+    @PostConstruct
+    public void init() {
+        // Si por alguna razón el properties no carga o es muy corta, usamos una de respaldo
+        // El algoritmo HS256 requiere al menos 32 caracteres (256 bits)
+        if (secretString == null || secretString.length() < 32) {
+            secretString = "clave_de_emergencia_mahmf_utez_2026_seguridad_total";
+        }
+        // Transformamos el String en una Key criptográfica real
+        this.key = Keys.hmacShaKeyFor(secretString.getBytes(StandardCharsets.UTF_8));
     }
 
-    // -------------------------------------------------------------------
-    // GENERAR TOKEN
-    // Incluye el email como "subject" y el rol como un claim adicional.
-    // La app móvil y el panel web leerán el rol para saber qué mostrar.
-    // -------------------------------------------------------------------
+    // --- GENERAR TOKEN ---
     public String generateToken(String email, String role) {
         return Jwts.builder()
-                .subject(email)                             // Quién es el usuario
-                .claim("role", role)                        // Claim extra: su rol
-                .issuedAt(new Date())                       // Cuándo fue emitido
+                .subject(email)
+                .claim("role", role)
+                .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(getSigningKey())                  // Firma con HMAC-SHA256
+                .signWith(key) // Usamos la Key ya preparada
                 .compact();
     }
 
-    // -------------------------------------------------------------------
-    // EXTRAER USERNAME (email)
-    // Lo usará JwtAuthFilter para identificar al usuario en cada request.
-    // -------------------------------------------------------------------
+    // --- EXTRAER DATOS ---
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // -------------------------------------------------------------------
-    // EXTRAER ROL
-    // Útil para lógica de autorización en los servicios.
-    // -------------------------------------------------------------------
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
 
+    // --- VALIDACIÓN ---
     public boolean validateToken(String token) {
         try {
-            extractAllClaims(token); // Si esto no lanza excepción, el token es válido
+            extractAllClaims(token); // Si logra leerlo sin error, es válido
             return true;
         } catch (Exception e) {
-            // io.jsonwebtoken.security.SignatureException  → firma inválida
-            // io.jsonwebtoken.ExpiredJwtException          → token expirado
-            // io.jsonwebtoken.MalformedJwtException        → formato incorrecto
+            // Aquí caen tokens expirados o firmas falsas
             return false;
         }
     }
 
-    // -------------------------------------------------------------------
-    // MÉTODO PRIVADO: extrae todos los claims del token
-    // -------------------------------------------------------------------
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(key) // Verificamos con nuestra Key segura
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

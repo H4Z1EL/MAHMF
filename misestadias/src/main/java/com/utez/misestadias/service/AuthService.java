@@ -8,7 +8,6 @@ import com.utez.misestadias.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,20 +27,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-
     public AuthResponse login(AuthRequest request) {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
-        } catch (BadCredentialsException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
-        }
+        String email = request.getEmail().trim().toLowerCase();
 
-        User user = userRepository.findByEmail(request.getEmail())
+        // Autenticación estándar: Spring buscará solito el UserDetailsService
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
+        );
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
@@ -56,56 +50,32 @@ public class AuthService {
 
     @Transactional
     public String requestPasswordRecovery(String email) {
-        userRepository.findByEmail(email).ifPresent(user -> {
-
+        userRepository.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
             String code = String.format("%04d", new SecureRandom().nextInt(9000) + 1000);
-
             user.setRecoveryCode(code);
             user.setRecoveryExpiration(LocalDateTime.now().plusMinutes(10));
             userRepository.save(user);
-
             emailService.sendRecoveryCode(email, code);
         });
-
         return "Si el email existe, recibirás un código de recuperación.";
     }
 
     @Transactional(readOnly = true)
     public boolean verifyCode(String email, String code) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-        // Verificar que tiene código y no expiró
-        if (user.getRecoveryCode() == null || user.getRecoveryExpiration() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hay código de recuperación activo");
-        }
-
-        if (LocalDateTime.now().isAfter(user.getRecoveryExpiration())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El código ha expirado. Solicita uno nuevo.");
-        }
-
-        if (!user.getRecoveryCode().equals(code)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código incorrecto");
-        }
-
-        return true;
+        return user.getRecoveryCode() != null && user.getRecoveryCode().equals(code);
     }
 
     @Transactional
     public String resetPassword(String email, String code, String newPassword) {
-
-        verifyCode(email, code);
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
+        if (!verifyCode(email, code)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código inválido");
+        }
+        User user = userRepository.findByEmail(email.trim().toLowerCase()).get();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-
         user.setRecoveryCode(null);
-        user.setRecoveryExpiration(null);
-
         userRepository.save(user);
-
         return "Contraseña actualizada exitosamente.";
     }
 }

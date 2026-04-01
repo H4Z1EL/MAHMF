@@ -3,6 +3,7 @@ package com.utez.misestadias.security;
 import com.utez.misestadias.model.User;
 import com.utez.misestadias.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,26 +19,18 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + email));
 
-        // Busca al usuario por email en la BD
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuario no encontrado con email: " + email
-                ));
-
-        // Verifica que el usuario esté activo (is_active = 1)
         if (user.getIsActive() == null || user.getIsActive() != 1) {
-            throw new UsernameNotFoundException("Usuario inactivo: " + email);
+            throw new UsernameNotFoundException("Usuario inactivo");
         }
 
-        // Construye el objeto UserDetails que Spring Security entiende.
-        // El prefijo "ROLE_" es convención de Spring Security para los roles.
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
-                user.getPasswordHash(),
+                user.getPasswordHash().trim(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-                // Ejemplo: ROLE_STUDENT, ROLE_ADVISOR, ROLE_ADMIN
         );
     }
 }

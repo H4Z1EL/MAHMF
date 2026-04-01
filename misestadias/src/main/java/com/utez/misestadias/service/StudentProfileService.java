@@ -6,6 +6,7 @@ import com.utez.misestadias.model.User;
 import com.utez.misestadias.repository.StudentProfileRepository;
 import com.utez.misestadias.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StudentProfileService {
 
     private final StudentProfileRepository profileRepository;
@@ -20,22 +22,33 @@ public class StudentProfileService {
 
     @Transactional(readOnly = true)
     public StudentProfileDTO getMyProfile(String email) {
-        User user = userRepository.findByEmail(email)
+        log.info("Buscando perfil para el email: {}", email);
+
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
         return profileRepository.findByUser_UserId(user.getUserId())
                 .map(profile -> toDTO(profile, user))
-                .orElse(StudentProfileDTO.builder().userId(user.getUserId()).email(user.getEmail()).build());
+                // Si no tiene perfil, regresamos uno vacío con sus datos base para que Android no truene
+                .orElse(StudentProfileDTO.builder()
+                        .userId(user.getUserId())
+                        .email(user.getEmail())
+                        .fullName("Usuario nuevo")
+                        .build());
     }
 
     @Transactional
     public StudentProfileDTO upsertProfile(String email, StudentProfileDTO dto) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
+        // Buscamos el perfil existente o creamos uno nuevo
         StudentProfile profile = profileRepository.findByUser_UserId(user.getUserId())
                 .orElse(new StudentProfile());
+
         profile.setUser(user);
 
+        // Actualización selectiva de campos
         if (dto.getFullName() != null)                 profile.setFullName(dto.getFullName());
         if (dto.getAge() != null)                      profile.setAge(dto.getAge());
         if (dto.getPhone() != null)                    profile.setPhone(dto.getPhone());
@@ -56,10 +69,11 @@ public class StudentProfileService {
     @Transactional(readOnly = true)
     public StudentProfileDTO getProfileByUserId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
         return profileRepository.findByUser_UserId(userId)
                 .map(profile -> toDTO(profile, user))
-                .orElse(StudentProfileDTO.builder().userId(user.getUserId()).email(user.getEmail()).build());
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil no encontrado"));
     }
 
     private StudentProfileDTO toDTO(StudentProfile profile, User user) {
