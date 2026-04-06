@@ -27,10 +27,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("Usuario inactivo");
         }
 
+        // CORRECCIÓN: Aseguramos que el rol esté limpio y en mayúsculas
+        String userRole = user.getRole() != null ? user.getRole().trim().toUpperCase() : "STUDENT";
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPasswordHash().trim(),
-                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+                List.of(new SimpleGrantedAuthority("ROLE_" + userRole))
         );
     }
 }
