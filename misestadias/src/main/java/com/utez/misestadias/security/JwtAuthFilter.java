@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,55 +22,51 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final UserDetailsServiceImpl userDetailsService;
 
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // 1. VÍA RÁPIDA: Si la ruta es de autenticación, no pedimos Token.
-        if (request.getServletPath().contains("/api/auth")) {
+        // ── WHITELIST: rutas públicas — pasan directo sin revisar token ──
+        String path = request.getServletPath();
+        if (path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 2. Leer el header Authorization
+        // Leer el header Authorization
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
 
-        // 3. Si no hay token o no es Bearer, seguimos sin autenticar
+        // Si no hay header o no empieza con "Bearer ", dejar pasar
+        // (Spring Security decidirá si la ruta requiere auth o no)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 4. Extraer token y email
-        jwt = authHeader.substring(7);
-        userEmail = jwtUtils.extractUsername(jwt);
+        // Extraer el token
+        final String jwt = authHeader.substring(7);
+        final String email = jwtUtils.extractUsername(jwt);
 
-        // 5. Si hay email y no está autenticado aún
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            // 6. Validar token
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (jwtUtils.validateToken(jwt)) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                // 7. Crear la autenticación oficial de Spring
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
                 );
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // 8. Meter al usuario al "Club" de Spring Security
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // 9. Continuar
         filterChain.doFilter(request, response);
     }
 }
