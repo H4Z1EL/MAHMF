@@ -21,6 +21,8 @@ public class CreateUserDTO {
     @Pattern(regexp = "STUDENT|ADVISOR|ADMIN", message = "Rol inválido")
     private String role;
 
-    // Opcional — nombre completo para crear el perfil al mismo tiempo
     private String fullName;
+
+    // Solo aplica cuando role = STUDENT
+    private String advisorName;
 }

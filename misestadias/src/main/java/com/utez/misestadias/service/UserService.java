@@ -24,7 +24,7 @@ public class UserService {
     private final StudentProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // ── Convierte User → DTO incluyendo el rol ──
+    // ── Convierte User → DTO ──
     private StudentProfileDTO toDTO(User user) {
         return profileRepository.findByUser_UserId(user.getUserId())
                 .map(profile -> StudentProfileDTO.builder()
@@ -33,6 +33,8 @@ public class UserService {
                         .email(user.getEmail())
                         .role(user.getRole())
                         .fullName(profile.getFullName())
+                        .age(profile.getAge())
+                        .phone(profile.getPhone())
                         .major(profile.getMajor())
                         .division(profile.getDivision())
                         .matricula(profile.getMatricula())
@@ -48,7 +50,6 @@ public class UserService {
                         .build());
     }
 
-    // ── Listar solo alumnos activos ──
     @Transactional(readOnly = true)
     public List<StudentProfileDTO> getAllStudents() {
         return userRepository.findAll().stream()
@@ -57,7 +58,6 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // ── Listar todos los usuarios activos ──
     @Transactional(readOnly = true)
     public List<StudentProfileDTO> getAllUsers() {
         return userRepository.findAll().stream()
@@ -66,19 +66,13 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // ── Crear nuevo usuario (Admin/Asesor) ──
     @Transactional
     public StudentProfileDTO createUser(CreateUserDTO dto) {
-
-        // Verificar que el email no exista
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Ya existe un usuario con el email: " + dto.getEmail()
-            );
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe un usuario con el email: " + dto.getEmail());
         }
 
-        // Crear usuario
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
@@ -86,25 +80,64 @@ public class UserService {
         user.setIsActive(1);
         User saved = userRepository.save(user);
 
-        // Si viene fullName, crear perfil básico automáticamente
+        StudentProfile profile = new StudentProfile();
+        profile.setUser(saved);
         if (dto.getFullName() != null && !dto.getFullName().isBlank()) {
-            StudentProfile profile = new StudentProfile();
-            profile.setUser(saved);
             profile.setFullName(dto.getFullName());
-            profileRepository.save(profile);
         }
+        // advisorName viene en el DTO para alumnos
+        if (dto.getAdvisorName() != null && !dto.getAdvisorName().isBlank()) {
+            profile.setAdvisorName(dto.getAdvisorName());
+        }
+        profileRepository.save(profile);
 
         return toDTO(saved);
     }
 
-    // ── Desactivar usuario (soft delete) ──
     @Transactional
     public void deactivateUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + userId
-                ));
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado: " + userId));
         user.setIsActive(0);
         userRepository.save(user);
+    }
+
+    // ── Reactivar usuario ──
+    @Transactional
+    public void activateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado: " + userId));
+        user.setIsActive(1);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public StudentProfileDTO updateProfileByUserId(Long userId, StudentProfileDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado: " + userId));
+
+        StudentProfile profile = profileRepository.findByUser_UserId(userId)
+                .orElse(new StudentProfile());
+        profile.setUser(user);
+
+        if (dto.getFullName() != null)                 profile.setFullName(dto.getFullName());
+        if (dto.getAge() != null)                      profile.setAge(dto.getAge());
+        if (dto.getPhone() != null)                    profile.setPhone(dto.getPhone());
+        if (dto.getEmergencyContactName() != null)     profile.setEmergencyContactName(dto.getEmergencyContactName());
+        if (dto.getEmergencyContactPhone() != null)    profile.setEmergencyContactPhone(dto.getEmergencyContactPhone());
+        if (dto.getEmergencyContactRelation() != null) profile.setEmergencyContactRelation(dto.getEmergencyContactRelation());
+        if (dto.getMajor() != null)                    profile.setMajor(dto.getMajor());
+        if (dto.getDivision() != null)                 profile.setDivision(dto.getDivision());
+        if (dto.getMatricula() != null)                profile.setMatricula(dto.getMatricula());
+        if (dto.getTerm() != null)                     profile.setTerm(dto.getTerm());
+        if (dto.getCompanyName() != null)              profile.setCompanyName(dto.getCompanyName());
+        // advisorName siempre se actualiza (puede ponerse null para quitar asesor)
+        profile.setAdvisorName(dto.getAdvisorName());
+
+        profileRepository.save(profile);
+        return toDTO(user);
     }
 }
