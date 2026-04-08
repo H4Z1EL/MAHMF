@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/activities")
@@ -25,23 +26,47 @@ public class ActivityController {
     private final ActivityService activityService;
     private final AttachmentService attachmentService;
 
-    @PostMapping
-    public ResponseEntity<ActivityResponseDTO> createActivity(
-            @Valid @RequestBody ActivityRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(activityService.createActivity(dto));
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Integer>> getActivitiesSummary(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+                activityService.getSummary(userDetails.getUsername()));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ActivityResponseDTO>> getActivities(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String status) {
+
+        if (status != null) {
+            return ResponseEntity.ok(
+                    activityService.getActivitiesByStatus(
+                            userDetails.getUsername(), status));
+        }
+        return ResponseEntity.ok(
+                activityService.getActivitiesByStudentEmail(
+                        userDetails.getUsername()));
     }
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<ActivityResponseDTO>> getActivitiesByStudent(
             @PathVariable Long studentId) {
-        return ResponseEntity.ok(activityService.getActivitiesByStudent(studentId));
+        return ResponseEntity.ok(
+                activityService.getActivitiesByStudent(studentId));
     }
 
     @GetMapping("/{activityId}")
     public ResponseEntity<ActivityResponseDTO> getActivityById(
             @PathVariable Long activityId) {
-        return ResponseEntity.ok(activityService.getActivityById(activityId));
+        return ResponseEntity.ok(
+                activityService.getActivityById(activityId));
+    }
+
+    @PostMapping
+    public ResponseEntity<ActivityResponseDTO> createActivity(
+            @Valid @RequestBody ActivityRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(activityService.createActivity(dto));
     }
 
     @PutMapping("/{activityId}/status")
@@ -58,14 +83,15 @@ public class ActivityController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String studentEmail = userDetails.getUsername();
-        AttachmentResponseDTO response = attachmentService.uploadFile(activityId, file, studentEmail);
+        AttachmentResponseDTO response =
+                attachmentService.uploadFile(activityId, file, studentEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{activityId}/attachments")
     public ResponseEntity<List<AttachmentResponseDTO>> getAttachments(
             @PathVariable Long activityId) {
-        return ResponseEntity.ok(attachmentService.getAttachmentsByActivity(activityId));
+        return ResponseEntity.ok(
+                attachmentService.getAttachmentsByActivity(activityId));
     }
-
 }
