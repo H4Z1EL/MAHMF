@@ -17,11 +17,10 @@ public class CommentResponseDTO {
     private String content;
     private LocalDateTime createdAt;
 
-    // Datos del autor (alumno o asesor)
+
     private Long authorId;
     private String authorEmail;
     private String authorRole;
 
-    // Referencia a la actividad
     private Long activityId;
 }

@@ -17,7 +17,6 @@ public class Attachment {
     @Column(name = "attachment_id")
     private Long attachmentId;
 
-    // FK hacia activities — ON DELETE CASCADE en BD
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id", nullable = false)
     private Activity activity;
@@ -25,14 +24,11 @@ public class Attachment {
     @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
 
-    // Valores: 'IMAGE', 'DOCUMENT'
     @Column(name = "file_type", length = 50)
     private String fileType;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    // --- Ciclo de vida ---
 
     @PrePersist
     protected void onCreate() {

@@ -39,34 +39,28 @@ public class AttachmentService {
     public AttachmentResponseDTO uploadFile(Long activityId,
                                             MultipartFile file,
                                             String studentEmail) {
-        // 1. Buscar actividad
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Actividad no encontrada: " + activityId));
 
-        // 2. Verificar que la actividad pertenece al alumno autenticado
         if (!activity.getStudent().getEmail().equals(studentEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "No tienes permiso para subir archivos a esta actividad");
         }
 
-        // 3. Validar archivo no vacío
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo está vacío");
         }
 
-        // 4. Determinar tipo IMAGE o DOCUMENT
         String contentType = file.getContentType() != null ? file.getContentType() : "";
         String fileType = contentType.startsWith("image/") ? "IMAGE" : "DOCUMENT";
 
-        // 5. Nombre único para evitar colisiones
         String originalName = file.getOriginalFilename() != null
                 ? file.getOriginalFilename() : "archivo";
         String extension = originalName.contains(".")
                 ? originalName.substring(originalName.lastIndexOf(".")) : "";
         String uniqueName = UUID.randomUUID() + extension;
 
-        // 6. Guardar en disco
         try {
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
@@ -78,7 +72,6 @@ public class AttachmentService {
                     "Error al guardar el archivo: " + e.getMessage());
         }
 
-        // 7. Registrar en BD
         Attachment attachment = new Attachment();
         attachment.setActivity(activity);
         attachment.setFileUrl(baseUrl + "/" + uniqueName);

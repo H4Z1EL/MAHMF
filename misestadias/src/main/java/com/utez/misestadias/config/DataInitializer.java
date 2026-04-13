@@ -40,7 +40,6 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Usuario ADMIN ya existe — no se insertó de nuevo.");
         }
 
-        // Alumno de prueba
         if (!userRepository.existsByEmail("alumno@correo.com")) {
             User alumno = new User();
             alumno.setEmail("alumno@correo.com");
@@ -51,7 +50,6 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Usuario STUDENT creado: alumno@correo.com / 12345");
         }
 
-        // Asesor de prueba
         if (!userRepository.existsByEmail("asesor@correo.com")) {
             User asesor = new User();
             asesor.setEmail("asesor@correo.com");

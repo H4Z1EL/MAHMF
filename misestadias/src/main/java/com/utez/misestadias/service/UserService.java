@@ -24,7 +24,6 @@ public class UserService {
     private final StudentProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // ── Convierte User → DTO ──
     private StudentProfileDTO toDTO(User user) {
         return profileRepository.findByUser_UserId(user.getUserId())
                 .map(profile -> StudentProfileDTO.builder()
@@ -85,7 +84,6 @@ public class UserService {
         if (dto.getFullName() != null && !dto.getFullName().isBlank()) {
             profile.setFullName(dto.getFullName());
         }
-        // advisorName viene en el DTO para alumnos
         if (dto.getAdvisorName() != null && !dto.getAdvisorName().isBlank()) {
             profile.setAdvisorName(dto.getAdvisorName());
         }
@@ -103,7 +101,6 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // ── Reactivar usuario ──
     @Transactional
     public void activateUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -134,7 +131,6 @@ public class UserService {
         if (dto.getMatricula() != null)                profile.setMatricula(dto.getMatricula());
         if (dto.getTerm() != null)                     profile.setTerm(dto.getTerm());
         if (dto.getCompanyName() != null)              profile.setCompanyName(dto.getCompanyName());
-        // advisorName siempre se actualiza (puede ponerse null para quitar asesor)
         profile.setAdvisorName(dto.getAdvisorName());
 
         profileRepository.save(profile);

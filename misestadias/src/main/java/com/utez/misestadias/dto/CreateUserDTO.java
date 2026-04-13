@@ -23,6 +23,5 @@ public class CreateUserDTO {
 
     private String fullName;
 
-    // Solo aplica cuando role = STUDENT
     private String advisorName;
 }

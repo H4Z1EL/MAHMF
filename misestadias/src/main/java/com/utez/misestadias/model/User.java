@@ -46,7 +46,6 @@ public class User {
         if (this.isActive == null) {
             this.isActive = 1;
         }
-        // CORRECCIÓN: Normalizar el rol antes de guardar
         if (this.role == null) {
             this.role = "STUDENT";
         } else {

@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StatusUpdateDTO {
 
-    // Solo acepta los tres valores válidos definidos en el DDL
     @NotBlank(message = "El estado es obligatorio")
     @Pattern(
             regexp = "PENDING|DELIVERED|LATE",

@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuthResponse {
 
-    private String token;       // El JWT que el cliente debe guardar
-    private String role;        // STUDENT | ADVISOR | ADMIN
-    private Long userId;        // ID del usuario autenticado
-    private String email;       // Email confirmado
+    private String token;
+    private String role;
+    private Long userId;
+    private String email;
 }

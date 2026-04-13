@@ -29,7 +29,6 @@ public class StudentProfileService {
 
         return profileRepository.findByUser_UserId(user.getUserId())
                 .map(profile -> toDTO(profile, user))
-                // Si no tiene perfil, regresamos uno vacío con sus datos base para que Android no truene
                 .orElse(StudentProfileDTO.builder()
                         .userId(user.getUserId())
                         .email(user.getEmail())
@@ -42,13 +41,11 @@ public class StudentProfileService {
         User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Buscamos el perfil existente o creamos uno nuevo
         StudentProfile profile = profileRepository.findByUser_UserId(user.getUserId())
                 .orElse(new StudentProfile());
 
         profile.setUser(user);
 
-        // Actualización selectiva de campos
         if (dto.getFullName() != null)                 profile.setFullName(dto.getFullName());
         if (dto.getAge() != null)                      profile.setAge(dto.getAge());
         if (dto.getPhone() != null)                    profile.setPhone(dto.getPhone());

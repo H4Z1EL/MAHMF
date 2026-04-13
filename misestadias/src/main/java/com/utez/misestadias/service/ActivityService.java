@@ -27,7 +27,6 @@ public class ActivityService {
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
 
-    // Resumen solo para el alumno logueado
     @Transactional(readOnly = true)
     public Map<String, Integer> getSummary(String email) {
         User user = userRepository.findByEmail(email)
@@ -43,7 +42,6 @@ public class ActivityService {
         return Map.of("completed", completed, "total", total);
     }
 
-    // Todas las actividades del alumno logueado
     @Transactional(readOnly = true)
     public List<ActivityResponseDTO> getActivitiesByStudentEmail(String email) {
         User user = userRepository.findByEmail(email)
@@ -55,7 +53,6 @@ public class ActivityService {
                 .collect(Collectors.toList());
     }
 
-    // Actividades filtradas por estado solo para el alumno logueado
     @Transactional(readOnly = true)
     public List<ActivityResponseDTO> getActivitiesByStatus(String email, String status) {
         User user = userRepository.findByEmail(email)

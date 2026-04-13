@@ -17,12 +17,11 @@ public class ActivityResponseDTO {
     private String title;
     private String description;
     private LocalDateTime dueDate;
-    private String status;           // PENDING | DELIVERED | LATE
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Datos básicos del alumno dueño de esta actividad
     private Long studentId;
-    private String studentName;      // Viene de StudentProfile.fullName
-    private String studentEmail;     // Viene de User.email
+    private String studentName;
+    private String studentEmail;
 }

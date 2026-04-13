@@ -30,7 +30,6 @@ public class AuthService {
     public AuthResponse login(AuthRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
-        // Autenticación estándar: Spring buscará solito el UserDetailsService
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.getPassword())
         );

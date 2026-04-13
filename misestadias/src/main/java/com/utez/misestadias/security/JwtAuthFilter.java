@@ -27,24 +27,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // ── WHITELIST: rutas públicas — pasan directo sin revisar token ──
         String path = request.getServletPath();
         if (path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Leer el header Authorization
         final String authHeader = request.getHeader("Authorization");
 
-        // Si no hay header o no empieza con "Bearer ", dejar pasar
-        // (Spring Security decidirá si la ruta requiere auth o no)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extraer el token
         final String jwt = authHeader.substring(7);
         final String email = jwtUtils.extractUsername(jwt);
 

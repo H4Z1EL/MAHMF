@@ -27,7 +27,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    // Agregamos el UserDetailsServiceImpl para configurarlo manualmente
     private final UserDetailsServiceImpl userDetailsService;
 
     @Bean
@@ -43,7 +42,6 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // Registramos explícitamente el proveedor
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -52,8 +50,6 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        // CORRECCIÓN: Usamos el constructor que recibe el userDetailsService
-        // Esto elimina el error de "Expected 1 argument but found 0"
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
