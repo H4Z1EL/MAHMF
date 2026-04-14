@@ -3,6 +3,7 @@ package com.utez.misestadias.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -37,7 +38,38 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
-                        .anyRequest().authenticated()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,  "/api/users/students").hasAnyRole("ADMIN", "ADVISOR")
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/*/activate").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/*/profile").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/me").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/profiles").authenticated()
+
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/**").hasAnyRole("ADMIN", "ADVISOR")
+
+                        .requestMatchers(HttpMethod.GET, "/api/activities/summary").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/activities").hasRole("STUDENT")
+
+                        .requestMatchers(HttpMethod.POST, "/api/activities").hasAnyRole("ADMIN", "ADVISOR")
+
+                        .requestMatchers(HttpMethod.GET, "/api/activities/student/**").hasAnyRole("ADMIN", "ADVISOR")
+
+                        .requestMatchers(HttpMethod.GET, "/api/activities/**").authenticated()
+
+                        .requestMatchers(HttpMethod.PUT, "/api/activities/*/status").hasAnyRole("ADMIN", "ADVISOR")
+
+                        .requestMatchers(HttpMethod.POST, "/api/activities/*/upload").hasRole("STUDENT")
+
+                        .requestMatchers(HttpMethod.GET, "/api/activities/*/attachments").authenticated()
+
+                        .requestMatchers("/api/activities/*/comments/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/activities/*/comments").authenticated()
+
+                        .anyRequest().denyAll()
                 )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
